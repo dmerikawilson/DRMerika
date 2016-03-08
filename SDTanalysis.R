@@ -20,14 +20,14 @@ SDTsummary <- function(data, grouping_variables = c("subject", "list_type", "cla
     group_by_(.dots = grouping_variables[grouping_variables != 'list_size']) %>% 
     summarise(FA = mean(!acc),
               nObs = n(),
-              zFA =  qnorm( max(1/(2*nObs), FA - 1/(2*nObs )))) %>% 
+              zFA =  zTransform(!acc)) %>% 
     rename(lure_dist = class)
   
   rel_lures <-  filter(data, class %in% c("related", "critical")) %>%
     group_by_(.dots = grouping_variables) %>% 
     summarise(FA = mean(!acc),
               nObs = n(),
-              zFA =  qnorm( max(1/(2*nObs), FA - 1/(2*nObs )))) %>% 
+              zFA =  zTransform(!acc)) %>% 
     rename(lure_dist = class)
   
   if ('list_size' %in% grouping_variables) {
@@ -38,7 +38,7 @@ SDTsummary <- function(data, grouping_variables = c("subject", "list_type", "cla
     group_by_(.dots = grouping_variables) %>% 
     summarise(HR = mean(acc),
               nObs = n(),
-              zHR =  qnorm( max(1/(2*nObs), HR - 1/(2*nObs )))) %>%
+              zHR =  zTransform(acc)) %>%
     rename(target_dist = class) %>%
     ungroup()
   
