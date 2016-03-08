@@ -1,0 +1,19 @@
+---
+title: "DRM SDT Analysis"
+author: "William Hopper & Merika Wilson"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+source("DRMmunging.R")
+source("SDTanalysis.R")
+```
+
+```{r summarise}
+DRMsummary <- DRM_data_setup() %>% 
+  select(-trial, -rt, -list, -studied) %>%
+  SDTsummary(grouping_variables = c("subject", "class"))
+"hi"
+```
