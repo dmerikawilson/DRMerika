@@ -46,9 +46,13 @@ SDTsummary <- function(data, grouping_variables = c("subject", "list_type", "cla
     rbind(rename(ungroup(rel_lures), HR = FA, zHR = zFA, target_dist = lure_dist)) %>%
     left_join(combinations, by = "target_dist") %>%
     left_join(rel_lures, by= c(grouping_variables[grouping_variables != 'class'], "lure_dist")) %>%
-    filter(lure_dist != 'lure') %>%
-    # left_join(unrel_lures, by = c(grouping_variables[!(grouping_variables %in% c('list_size',class')], "lure_dist")) %>%
     rename(nObs.HR = nObs.x, nObs.FA = nObs.y) %>%
+    left_join(unrel_lures, by = c(grouping_variables[!(grouping_variables %in% c('list_size','class'))], "lure_dist")) %>%
+    mutate(FA.x = pmin(FA.x,FA.y, na.rm = TRUE),
+           nObs.FA = pmin(nObs.FA, nObs, na.rm = TRUE),
+           zFA.x = pmin(zFA.x,zFA.y, na.rm = TRUE)) %>%
+    select(-nObs, -FA.y, -zFA.y) %>%
+    rename(FA = FA.x, zFA = zFA.x) %>%
     mutate(dprime = zHR - zFA)
 
   return(fullSummary)
