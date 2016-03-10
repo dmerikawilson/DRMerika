@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE)
 library(dplyr)
 library(ggplot2)
+library(ez)
+library(pander)
 source("DRMmunging.R")
 source("SDTanalysis.R")
 ```
@@ -22,7 +24,7 @@ DRM_summary <- SDTsummary(DRMdata, grouping_variables = c("list_type", "class"))
   arrange(list_type, target_dist, lure_dist)
 ```
 
-```{r plot, echo=FALSE}
+```{r plot}
 ggplot(data = filter(DRM_summary, lure_dist == 'lure'),
        mapping = aes(x = target_dist, y = dprime, fill = list_type)) + 
   geom_bar(position = "dodge", stat = "identity") + 
@@ -31,4 +33,14 @@ ggplot(data = filter(DRM_summary, lure_dist == 'lure'),
                    labels = c("Related Lures", "Critical Lures", "Studied Items")) +
   ylab("d'") +
   ggtitle("Discriminability from Unrelated Lures")
+```
+
+```{r ANOVA, warning = FALSE}
+# anova_results <- aov(dprime ~ list_type*target_dist + Error((list_type*target_dist)/subject),
+#                      data = filter(DRM_subLevel_summary, lure_dist == 'lure'))
+
+anova_results <- ezANOVA(data=as.data.frame(filter(DRM_subLevel_summary, lure_dist == 'lure')),
+                         dv=dprime, wid=subject, within=.(list_type, target_dist), detailed=TRUE, return_aov=TRUE, type=3)
+anova_summary <- summary(anova_results$aov)
+pander(anova_summary)
 ```
