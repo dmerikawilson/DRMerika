@@ -31,16 +31,19 @@ DRM_data_setup <- function() {
            list = tolower(list),
            rating = as.numeric(substring(new, 1,1)),
            class = mapply(recode_class, studied, list),
+           list = ifelse(list=="critical", word, list),
            list = replace(list, list == '', NA),
            old_new = ifelse(rating <= 3, "new", "old"),
            acc = ifelse((studied == 1 & old_new == 'old') | (studied == 0 & old_new == 'new'), 1, 0)) %>%
     left_join(y=list_length, by=c("subnum","list")) %>%
-    select(subject = subnum, trial = trialnum, word, list, list_type = type,
+    select(subject = subnum, group, trial = trialnum, word, list, list_type = type,
            list_length, class, studied, rating, rt, old_new, acc)
   
   return(data)
 }
 
+# fList <- list.files(path = file.path("data"), pattern = "*StudyData.csv", full.names = TRUE)
+# newdata <- do.call(rbind, addIDvariable(fList,name = "Group", value = "young", position = 2))
 addIDvariable <- function(file_list, name, value, position, write = FALSE) {
   stopifnot(position > 0)
   data <- lapply(file_list, function(x) data.frame(read.csv(x), value)) %>%
