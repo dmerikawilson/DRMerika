@@ -11,6 +11,7 @@ DRM_data_setup <- function() {
       'related'
     }
   }
+  
   options(stringsAsFactors = FALSE)
   fList <- list.files(path = file.path("data"), pattern = "*TestData.csv", full.names = TRUE) #Reading in files in "Data" folder with that extension
   data <- do.call(rbind, lapply(fList, read.csv))
@@ -37,5 +38,16 @@ DRM_data_setup <- function() {
     select(subject = subnum, trial = trialnum, word, list, list_type = type,
            list_length, class, studied, rating, rt, old_new, acc)
   
+  return(data)
+}
+
+addIDvariable <- function(file_list, name, value, position, write = FALSE) {
+  stopifnot(position > 0)
+  data <- lapply(file_list, function(x) data.frame(read.csv(x), value)) %>%
+    lapply(function(x) { names(x) <- c(names(x)[1:(ncol(x)-1)], name); return(x)}) %>%
+    lapply(function(x) select(x, 1:(position-1),ncol(x),position:(ncol(x)-1)))
+  if (write) {
+    mapply(write.csv,data, file_list, quote = FALSE, row.names=FALSE)
+  }
   return(data)
 }
