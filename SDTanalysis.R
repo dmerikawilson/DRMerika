@@ -6,7 +6,7 @@ zTransform <- function(x, correct = TRUE, na.rm = FALSE, ...) {
   return(qnorm(rate, ...))
 }
 
-SDTsummary <- function(data, grouping_variables = c("subject", "list_type", "class")) {
+SDTsummary <- function(data, grouping_variables = c("subject", "list_type", "class", "list_length", "group")) {
   
   stopifnot(require(dplyr))
   if ( !all(grouping_variables %in% names(data)) ) {
@@ -17,7 +17,7 @@ SDTsummary <- function(data, grouping_variables = c("subject", "list_type", "cla
                              lure_dist = c("lure","critical","related","lure","related","lure"))
   
   unrel_lures <- filter(data, class == "lure") %>%
-    group_by_(.dots = grouping_variables[grouping_variables != 'list_size']) %>% 
+    group_by_(.dots = grouping_variables) %>%
     summarise(FA = mean(!acc),
               nObs = n(),
               zFA =  zTransform(!acc)) %>% 
@@ -29,10 +29,6 @@ SDTsummary <- function(data, grouping_variables = c("subject", "list_type", "cla
               nObs = n(),
               zFA =  zTransform(!acc)) %>% 
     rename(lure_dist = class)
-  
-  if ('list_size' %in% grouping_variables) {
-    unrel_lures$list_size <- NA
-  }
   
   targets <- filter(data, class == "target") %>%
     group_by_(.dots = grouping_variables) %>% 
@@ -47,12 +43,13 @@ SDTsummary <- function(data, grouping_variables = c("subject", "list_type", "cla
     left_join(combinations, by = "target_dist") %>%
     left_join(rel_lures, by= c(grouping_variables[grouping_variables != 'class'], "lure_dist")) %>%
     rename(nObs.HR = nObs.x, nObs.FA = nObs.y) %>%
-    left_join(unrel_lures, by = c(grouping_variables[!(grouping_variables %in% c('list_size','class'))], "lure_dist")) %>%
+    left_join(unrel_lures, by = c(grouping_variables[!(grouping_variables %in% c('list_length','class'))], "lure_dist")) %>%
     mutate(FA.x = pmin(FA.x,FA.y, na.rm = TRUE),
            nObs.FA = pmin(nObs.FA, nObs, na.rm = TRUE),
-           zFA.x = pmin(zFA.x,zFA.y, na.rm = TRUE)) %>%
-    select(-nObs, -FA.y, -zFA.y) %>%
-    rename(FA = FA.x, zFA = zFA.x) %>%
+           zFA.x = pmin(zFA.x,zFA.y, na.rm = TRUE),
+           lure_list_length = ifelse(is.na(list_length.y), list_length.x, list_length.y)) %>%
+    select(-nObs, -FA.y, -zFA.y, -list_length.y) %>%
+    rename(FA = FA.x, zFA = zFA.x, target_list_length = list_length.x) %>%
     mutate(dprime = zHR - zFA)
 
   return(fullSummary)

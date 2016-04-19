@@ -1,46 +1,388 @@
 ---
 title: "DRM SDT Analysis"
-author: "William Hopper & Merika Wilson"
+author: "Merika Wilson"
 date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 library(dplyr)
 library(ggplot2)
 library(ez)
 library(pander)
+library(whoppeR)
+panderOptions("table.split.table", Inf)
 source("DRMmunging.R")
 source("SDTanalysis.R")
+```
+
+```{r oldcode_deletemepleeeeease, eval=FALSE}
+# source("WithinSubjectsErrorBars.R")
+# DRMdata <- DRM_data_setup() %>% 
+#   select(-trial, -rt, -list, -studied)
+# DRM_subLevel_summary <- SDTsummary(DRMdata) %>%
+#   arrange(subject, group, list_type, target_dist, target_list_length, lure_dist)
+# 
+# SEwithinLureDataOld <- summarySEwithin(data= as.data.frame(filter(DRM_subLevel_summary, lure_dist == 'lure')), 
+#                                     measurevar = "dprime",
+#                                     withinvars= c("list_type", "target_dist", "target_list_length"),
+#                                     betweenvars = "group",
+#                                     idvar="subject", na.rm=FALSE, conf.interval=.95, .drop=TRUE)
+# SEwithinTargetData <- summarySEwithin(data= as.data.frame(filter(DRM_subLevel_summary, target_dist == 'target')), 
+#                                     measurevar = "dprime",
+#                                     withinvars= c("list_type", "lure_dist", "target_list_length"),
+#                                     betweenvars = "group",
+#                                     idvar="subject", na.rm=FALSE, conf.interval=.95, .drop=TRUE)
+# 
+# SEwithinTargetDataSimpleGroup <- summarySEwithin(data = as.data.frame(filter(filter(DRM_subLevel_summary,
+#                                                                                            target_dist ==
+#                                                                        'target'), lure_dist == 'related' |
+#                                                                 lure_dist == 'critical')), measure = "dprime", withinvars = c("lure_dist", "list_type"), betweenvars = "group", idvar = "subject", na.rm = FALSE, conf.interval= .95, .drop=TRUE)
+# 
+# 
+# SEwithinFAData <- summarySEwithin(data= as.data.frame(filter(DRM_subLevel_summary, lure_dist == 'lure'
+#                                                              | lure_dist == 'related')), 
+#                                     measurevar = "FA", withinvars= c("list_type", "lure_list_length"),
+#                                     betweenvars = "group",
+#                                     idvar="subject", na.rm=FALSE, conf.interval=.95, .drop=TRUE)
+# 
+# SEwithinFADataSimpleGroup <- summarySEwithin(data = as.data.frame(filter(DRM_subLevel_summary,
+#                                                                                 lure_dist == 'lure' |
+#                                                                 lure_dist == 'related')), measure = "FA", withinvars = c("list_type"), betweenvars = "group", idvar = "subject", na.rm = FALSE, conf.interval= .95, .drop=TRUE)
+
+# # New plot with transparencies
+# ggplot(data = SEwithinLureData, mapping = aes(x = target_dist, y = dprime)) +
+#      geom_bar(aes(alpha = target_list_length, fill = list_type), position = position_dodge(), stat = "identity", color = "black") +
+#      geom_errorbar(aes(ymax = dprime +sem, ymin = dprime - sem), position = position_dodge(), width = .2) +
+#      scale_alpha_manual(values=(c(0.1,0.5,1))) +
+# facet_wrap(~group)
+# 
+# # Correct color of errors bars, but wrong position
+# ggplot(data = SEwithinLureData, mapping = aes(x = target_dist, y = dprime)) +
+# geom_bar(aes(alpha = target_list_length, fill = list_type), position = position_dodge(), stat = "identity", color = "black") +
+# geom_errorbar(aes(ymax = dprime +sem, ymin = dprime - sem), position = position_dodge(2), width = .2) +
+# scale_alpha_manual(values=(c(0.1,0.5,1))) +
+# facet_wrap(~group)
+
+
+
+# ggplot(data = SEwithinLureData, aes(x = target_dist, y = dprime, 
+#                                     fill = interaction(target_list_length, list_type))) + 
+#   geom_bar(position = position_dodge(1), stat = "identity", color = "black") + 
+#   geom_errorbar(aes(ymax= dprime +sem, ymin = dprime - sem), position = position_dodge(1),
+#                 width = .2) + 
+#   scale_x_discrete("Item Type", limits = c("related", "critical", "target"),
+#                    labels = c("Related Lures", "Critical Lures", "Studied Items")) +
+#   scale_fill_manual(values=c("#FF6666", "#FF0000", "#99CC99", "#003300"),
+#                              name = "List\nType\nand\nLength") +
+#                     # labels = c("")
+#   ylab("d'") +
+#   ggtitle("Discriminability from Unrelated Lures") +
+#   facet_wrap(~group)
 ```
 
 ```{r summarise}
 DRMdata <- DRM_data_setup() %>% 
   select(-trial, -rt, -list, -studied)
+
 DRM_subLevel_summary <- SDTsummary(DRMdata) %>%
-  arrange(subject, list_type, target_dist, lure_dist)
-DRM_summary <- SDTsummary(DRMdata, grouping_variables = c("list_type", "class")) %>%
-  arrange(list_type, target_dist, lure_dist)
+  mutate(target_list_length = as.factor(target_list_length),
+         lure_list_length = as.factor(lure_list_length)) %>%
+  arrange(subject, group, list_type, target_dist, target_list_length, lure_dist)
+
+#NOT RUNNING MIDDLE AGE GROUP NOW!
+DRM_subLevel_summary<-DRM_subLevel_summary[!(DRM_subLevel_summary$group == "middle"),]
+
+SEwithinLureData <- WISEsummary(filter(DRM_subLevel_summary, lure_dist == 'lure'),
+                                    DV="dprime", 
+                                    betweenvars = "group",
+                                    withinvars = c("list_type", "target_dist", "target_list_length"),
+                                    idvar = "subject")
+
+
+SEwithinTargetData <- WISEsummary(filter(DRM_subLevel_summary, target_dist == 'target'), 
+                                    DV = "dprime",
+                                    betweenvars = "group",
+                                    withinvars= c("list_type", "lure_dist", "target_list_length"),
+                                    idvar="subject")
+
+
+SEwithinTargetDataSimpleGroup <- WISEsummary(filter(filter(DRM_subLevel_summary, target_dist == 'target'),
+                                            lure_dist == 'related' | lure_dist == 'critical'),
+                                    DV = "dprime", 
+                                    withinvars = c("lure_dist", "list_type"),
+                                    betweenvars = "group",
+                                    idvar = "subject")
+
+SEwithinFAData <- WISEsummary(filter(DRM_subLevel_summary, lure_dist == 'lure' | lure_dist == 'related'),
+                                    DV = "FA", 
+                                    withinvars= c("list_type", "lure_list_length"),
+                                    betweenvars = "group",
+                                    idvar="subject")
+
+SEwithinFADataSimpleGroup <- WISEsummary(filter(DRM_subLevel_summary, lure_dist == 'lure'|lure_dist == 
+                                                  'related'), 
+                                    DV = "FA",
+                                    withinvars = c("list_type"),
+                                    betweenvars = "group",
+                                    idvar = "subject")
+
+#Dprime8-dprime2
+listLength2 <- filter(DRM_subLevel_summary, target_list_length == 2)
+listLength8 <- filter(DRM_subLevel_summary, target_list_length == 8)
+
+DRM_subLevel_summary_d2minusd8 = listLength2
+DRM_subLevel_summary_d2minusd8$length_diff_dprime <- listLength2$dprime-listLength8$dprime
+
+
+SEwithinTargetDataLengthDiff <- WISEsummary(filter(DRM_subLevel_summary_d2minusd8, target_dist == 'target'),
+                                    DV = "length_diff_dprime",
+                                    betweenvars = "group",
+                                    withinvars= c("list_type", "lure_dist"),
+                                    idvar="subject")
+
+DRM_subLevel_summary_d2minusd8$length_diff_FA <- listLength2$FA-listLength8$FA
+
+SEwithinFADataLengthDiff <- WISEsummary(filter(DRM_subLevel_summary_d2minusd8, 
+                                               lure_dist == 'lure' | lure_dist == 'related'),
+                                    DV = "length_diff_FA", 
+                                    withinvars= c("list_type"),
+                                    betweenvars = "group",
+                                    idvar="subject")
 ```
 
-```{r plot}
-ggplot(data = filter(DRM_summary, lure_dist == 'lure'),
-       mapping = aes(x = target_dist, y = dprime, fill = list_type)) + 
-  geom_bar(position = "dodge", stat = "identity") + 
-  scale_fill_discrete("List Type") + 
-  scale_x_discrete("Item Type", limits = c("related", "critical", "target"),
-                   labels = c("Related Lures", "Critical Lures", "Studied Items")) +
+```{r plot, fig.width=9}
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+#black, gold, light blue, green, yellow, blue, dark orange, pink
+
+labels <- c(old = "Older Participants", young = "Younger Participants")
+
+ggplot(SEwithinLureData, aes(x = target_dist, y = dprime, fill = list_type,
+                                              alpha = target_list_length)) + 
+  geom_bar(position = position_dodge(),stat = "identity", color = "black") + 
+  geom_errorbar(aes(ymax = dprime +sem, ymin = dprime - sem), 
+                position = position_dodge(.9), color = "black", width = .2) + 
+  scale_x_discrete("Item Type", limits = c("related", "critical", "target"), 
+                   labels = c("Critical Lures", "Related Lures",  "Studied Items")) + 
+  scale_fill_manual(name = "List Type", values = c(cbbPalette[2], cbbPalette[4]),
+                    labels = c("Phonetic", "Semantic")) + 
   ylab("d'") +
-  ggtitle("Discriminability from Unrelated Lures")
+  ggtitle("Discriminability from Unrelated Lures") + 
+  scale_alpha_manual(values=(c(0.5,1)), name = "List Length", labels = c("2-Item", "8-Item")) + 
+  facet_wrap(~group, labeller = labeller(group = labels)) +
+  theme(text = element_text(size=12))
+
+# grid.arrange(p1,p2,nrow =1, ncol = 2)
 ```
+
+ANOVA DV: Unrelated d'; IV: Group, List type, List length, Relatedness
 
 ```{r ANOVA, warning = FALSE}
-# anova_results <- aov(dprime ~ list_type*target_dist + Error((list_type*target_dist)/subject),
-#                      data = filter(DRM_subLevel_summary, lure_dist == 'lure'))
-
-anova_results <- ezANOVA(data=as.data.frame(filter(DRM_subLevel_summary, lure_dist == 'lure')),
-                         dv=dprime, wid=subject, within=.(list_type, target_dist), detailed=TRUE, return_aov=TRUE, type=3)
+anova_results <- ezANOVA(data=as.data.frame(filter(DRM_subLevel_summary, lure_dist == 'lure')), 
+                         dv=dprime, wid=subject, between= group, within=.(list_type, target_dist, 
+                                                                          target_list_length),
+                         detailed=TRUE, return_aov=TRUE, type=3)
 anova_summary <- summary(anova_results$aov)
 pander(anova_summary)
+```
+
+```{r plot2}
+ggplot(data = filter(SEwithinTargetData, lure_dist == 'related' | lure_dist ==  'critical'),
+       aes(x = lure_dist, y = dprime, fill = list_type, alpha = target_list_length)) + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black") + 
+  geom_errorbar(aes(ymax = dprime + sem, ymin = dprime - sem),
+                position = position_dodge(.9), color = "black", width = .2) +
+  scale_x_discrete("Item Type", limits = c("critical", "related"), 
+                   labels = c("Critical Lures", "Related Lures")) + 
+  scale_fill_manual(name = "List Type", values = c(cbbPalette[2], cbbPalette[4]),
+                    labels = c("Phonetic", "Semantic")) + 
+  ylab("d'") +
+  ggtitle("Discriminability from Targets") + 
+  scale_alpha_manual(values=(c(0.5,1)), name = "List Length", labels = c("2-Item", "8-Item")) + 
+  facet_wrap(~group, labeller = labeller(group = labels)) +
+  theme(text = element_text(size=12))
+```
+
+ANOVA DV: Target d'; IV: Group, List type, List length, Relatedness
+
+```{r ANOVA2, warning = FALSE}
+anova_results2 <- ezANOVA(data=as.data.frame(filter(filter(DRM_subLevel_summary, target_dist == 'target'),
+                                                    lure_dist == 'related' | lure_dist == 'critical')),
+                         dv=dprime, wid=subject, between = group, within=.(list_type, lure_dist,
+                                                                           target_list_length),
+                         detailed=TRUE, return_aov=TRUE, type=3)
+anova_summary2 <- summary(anova_results2$aov)
+
+pander(anova_summary2)
+```
+
+```{r plot2b}
+labels2 <- c(critical = "Critical Lures", related = "Related Lures")
+
+ggplot(data = SEwithinTargetDataSimpleGroup, aes(x = group, y = dprime, fill = list_type)) +
+    geom_bar(position = position_dodge(), stat = "identity", color = "black") + 
+    geom_errorbar(aes(ymax = dprime + sem, ymin = dprime - sem), position = position_dodge(.9),
+                  color = "black", width = .2) + 
+    scale_x_discrete("Age Group", limits = c("old", "young"),
+                     labels = c("Older", "Younger")) +
+    scale_fill_manual(name = "List Type",
+                      values = c(cbbPalette[2], cbbPalette[4]),
+                      labels = c("Phonetic", "Semantic"))+
+    ylab("d'") +
+    ggtitle("Discriminability from Targets Simple Group Effects") +
+  facet_wrap(~lure_dist, labeller = labeller(lure_dist = labels2))+
+   theme(text = element_text(size=12))
+```
+
+Simple Effects DV: Target d'; IV: Group (Phonetic then Semantic)
+
+```{r ANOVA2bc, warning = FALSE}
+anova_results2b <-ezANOVA(data = as.data.frame(filter(filter(filter(DRM_subLevel_summary, target_dist ==
+                                                                       'target'), lure_dist == 'related' |
+                                                                lure_dist == 'critical'), list_type == 
+                                                         "phonetic")),
+                         dv=dprime, wid=subject, between = group,
+                         within_full=.(list_type, lure_dist, target_list_length),
+                         detailed=TRUE, return_aov = TRUE, type =3)
+anova_summary2b <- summary(anova_results2b$aov)
+
+anova_results2c <-ezANOVA(data = as.data.frame(filter(filter(filter(DRM_subLevel_summary, target_dist ==
+                                                                       'target'), lure_dist == 'related' |
+                                                                lure_dist == 'critical'), list_type == 
+                                                         "semantic")),
+                         dv=dprime, wid=subject, between = group,
+                         within_full=.(list_type, lure_dist, target_list_length),
+                         detailed=TRUE, return_aov = TRUE, type =3)
+
+anova_summary2c <- summary(anova_results2c$aov)
+pander(anova_summary2b)
+pander(anova_summary2c)
+```
+
+```{r plot3}
+ggplot(data = SEwithinFAData, aes(x = lure_list_length, y = FA, fill = list_type)) + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black") + 
+  geom_errorbar(aes(ymax = FA + sem, ymin = FA - sem), position = position_dodge(.9),
+                color = "black", width = .2) + 
+  scale_x_discrete("List Length", limits = c("0", "2", "8")) +
+  scale_fill_manual(name = "List Type", values=c(cbbPalette[2], cbbPalette[4]),
+                    labels = c("Phonetic", "Semantic"))+
+  ylab("FA") +
+  ggtitle("Comparison of Unrelated and Related Lure False Alarms") +
+  facet_wrap(~group, labeller = labeller(group = labels)) +
+  theme(text = element_text(size=12))
+```
+
+ANOVA DV: FA; IV: Group, List type, List length
+
+```{r ANOVA3, warning = FALSE}
+anova_results3 <- ezANOVA(data = data.frame(filter(DRM_subLevel_summary, lure_dist == 'lure' | 
+                                                     lure_dist == 'related')), 
+                          dv=FA, wid=subject, between = group,
+                          within=.(list_type, lure_list_length),
+                          within_full =.(target_list_length, target_dist),
+                          detailed=TRUE, return_aov=TRUE, type=3)
+
+anova_summary3 <- summary(anova_results3$aov)
+
+pander(anova_summary3)
+```
+
+```{r plot3b}
+ggplot(data = SEwithinFADataSimpleGroup, aes(x = group, y = FA, fill = list_type)) + 
+    geom_bar(position = position_dodge(), stat = "identity", color = "black") + 
+    geom_errorbar(aes(ymax = FA + sem, ymin = FA - sem), position = position_dodge(.9),
+                  color = "black", width = .2) + 
+    scale_x_discrete("Age Group", limits = c("old", "young"),
+                     labels = c("Older", "Younger")) +
+    scale_fill_manual(name = "List Type",
+                      values = c(cbbPalette[2], cbbPalette[4]),
+                      labels = c("Phonetic", "Semantic"))+
+    ylab("FA") +
+    ggtitle("Simple Group Effects for False Alarms") +
+   theme(text = element_text(size=12))
+```
+
+Simple Effects DV: FA; IV: Group (Phonetic then Semantic)
+
+```{r ANOVA3bc, warning = FALSE}
+anova_results3b <- ezANOVA(data = data.frame(filter(filter(DRM_subLevel_summary, lure_dist == 'lure' | 
+                                                     lure_dist == 'related'), list_type == "phonetic")), 
+                          dv=FA, wid=subject, between = group,
+                          within_full =.(lure_list_length, target_dist, list_type),
+                          detailed=TRUE, return_aov=TRUE, type=3)
+
+anova_summary3b <- summary(anova_results3b$aov)
+
+anova_results3c <- ezANOVA(data = data.frame(filter(filter(DRM_subLevel_summary, lure_dist == 'lure' | 
+                                                     lure_dist == 'related'), list_type == "semantic")), 
+                          dv=FA, wid=subject, between = group,
+                          within_full =.(lure_list_length, target_dist, list_type),
+                          detailed=TRUE, return_aov=TRUE, type=3)
+
+anova_summary3c <- summary(anova_results3c$aov)
+
+pander(anova_summary3b)
+pander(anova_summary3c)
+```
+
+```{r plot4}
+ggplot(data = filter(SEwithinTargetDataLengthDiff, lure_dist == 'related' | lure_dist ==  'critical'),
+       aes(x = lure_dist, y = length_diff_dprime, fill = list_type)) + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black") + 
+  geom_errorbar(aes(ymax = length_diff_dprime + sem, ymin = length_diff_dprime - sem),
+                position = position_dodge(.9), color = "black", width = .2) +
+  scale_x_discrete("Item Type", limits = c("critical", "related"), 
+                   labels = c("Critical Lures", "Related Lures")) + 
+  scale_fill_manual(name = "List Type", values = c(cbbPalette[2], cbbPalette[4]),
+                    labels = c("Phonetic", "Semantic")) + 
+  ylab("d'2 - d'8") +
+  ggtitle("Discriminability from Targets") + 
+   facet_wrap(~group, labeller = labeller(group = labels)) +
+  theme(text = element_text(size=12))
+```
+
+ANOVA DV: Target d'2 - d'8; IV: Group, List type, Relatedness
+
+```{r ANOVA4, warning = FALSE}
+anova_results4 <- ezANOVA(data=as.data.frame(filter(filter(DRM_subLevel_summary_d2minusd8,
+                                                           target_dist == 'target'),
+                                                    lure_dist == 'related' | lure_dist == 'critical')),
+                         dv=length_diff_dprime, wid=subject, between = group,
+                         within=.(list_type, lure_dist),
+                         detailed=TRUE, return_aov=TRUE, type=3)
+
+anova_summary4 <- summary(anova_results4$aov)
+
+pander(anova_summary4)
+```
+
+```{r plot5}
+ggplot(data = SEwithinFADataLengthDiff, aes(x = group, y = length_diff_FA, fill = list_type)) + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black") + 
+  geom_errorbar(aes(ymax = length_diff_FA + sem, ymin = length_diff_FA - sem),
+                position = position_dodge(.9),
+                color = "black", width = .2) + 
+  scale_x_discrete("Age Group", labels = c("Older", "Younger")) +
+  scale_fill_manual(name = "List Type", values=c(cbbPalette[2], cbbPalette[4]),
+                    labels = c("Phonetic", "Semantic"))+
+  ylab("FA2-FA8") +
+  ggtitle("Comparison of Related Lure False Alarms") +
+  theme(text = element_text(size=12))
+```
+
+ANOVA DV: FA2- FA8; IV: Group, List type
+
+```{r ANOVA5, warning = FALSE}
+anova_results5 <- ezANOVA(data = data.frame(filter(DRM_subLevel_summary_d2minusd8, lure_dist == 'lure' | 
+                                                     lure_dist == 'related')), 
+                          dv=length_diff_FA, wid=subject, between = group,
+                          within=.(list_type),
+                          within_full =.(target_dist),
+                          detailed=TRUE, return_aov=TRUE, type=3)
+
+anova_summary5 <- summary(anova_results5$aov)
+
+pander(anova_summary5)
 ```
